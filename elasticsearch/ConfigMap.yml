@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-config
+  namespace: elk
+data:
+  elasticsearch.yml: |
+    discovery.type: "single-node"
+    xpack.security.enabled: false
+    node.roles: ["master", "data"]
+    network.host: 0.0.0.0

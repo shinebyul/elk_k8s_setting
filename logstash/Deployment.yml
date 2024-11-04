@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: elk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:7.17.16
+          ports:
+            - containerPort: 50000
+              name: logs-tcp
+            - containerPort: 9600
+              name: logs-monitor
+          volumeMounts:
+            - name: logstash-config
+              mountPath: /usr/share/logstash/pipeline/logstash.conf
+              subPath: logstash.conf
+            - name: mariadb-driver
+              mountPath: /usr/share/logstash/mariadb-java-client-3.4.1.jar
+              subPath: mariadb-java-client-3.4.1.jar
+          env:
+            - name: LOGSTASH_JAVA_OPTS
+              value: "-Xms256m -Xmx1g"
+      volumes:
+        - name: logstash-config
+          configMap:
+            name: logstash-config
+        - name: mariadb-driver
+          configMap:
+            name: mariadb-driver

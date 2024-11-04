@@ -1,0 +1,55 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elasticsearch-eck
+  namespace: elk
+spec:
+  version: 7.17.16
+  nodeSets:
+    - name: default
+      count: 1
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 3Gi
+            storageClassName: longhorn-storage
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              env:
+                - name: READINESS_PROBE_PROTOCOL
+                  value: http
+              volumeMounts:
+                - name: elasticsearch-config
+                  mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+                  subPath: elasticsearch.yml
+              lifecycle:
+                postStart:
+                  exec:
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        if ! bin/elasticsearch-plugin list | grep -q analysis-nori; then
+                          echo "Installing nori analyzer plugin" >> /usr/share/elasticsearch/logs/plugin_install.log
+                          bin/elasticsearch-plugin install analysis-nori
+                        else
+                          echo "nori analyzer already installed" >> /usr/share/elasticsearch/logs/plugin_install.log
+                        if ! bin/elasticsearch-plugin list | grep -q korean-analyzer; then
+                          echo "Installing korean analyzer plugin" >> /usr/share/elasticsearch/logs/plugin_install.log
+                          bin/elasticsearch-plugin install [korean-analyzer 만든 다운로드 링크]
+                          echo "Restarting Elasticsearch to apply changes" >> /usr/share/elasticsearch/logs/plugin_install.log
+                          kill -HUP 1  # Elasticsearch 프로세스 재시작
+                        else
+                          echo "korean analyzer already installed" >> /usr/share/elasticsearch/logs/plugin_install.log
+                        fi
+          volumes:
+            - name: elasticsearch-config
+              configMap:
+                name: elasticsearch-config

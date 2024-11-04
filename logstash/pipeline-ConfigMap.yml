@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: elk
+data:
+  logstash.conf: |
+    input {
+      jdbc {
+        jdbc_driver_library => "/usr/share/logstash/mariadb-java-client-3.4.1.jar"
+        jdbc_driver_class => "org.mariadb.jdbc.Driver"
+        jdbc_connection_string => "jdbc:mariadb://mariadb-slave-svc.default.svc.cluster.local:3306/elk"
+        jdbc_user => "root"
+        jdbc_password => "qwer1234"
+
+        # sql_last_value -> logstash에서 내부적으로 다루는 마지막 실행 시간 변수
+        #  마지막 실행 시간 이후에 업데이트된 updated_at 컬럼 값을 기준으로 데이터를 가져옴
+        statement => "SELECT * FROM member WHERE COALESCE(modified_at, created_at) > :sql_last_value"
+
+        schedule => "*/10 * * * * *" # 10초마다 실행
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["http://elasticsearch:9200"]
+        #hosts => ["http://elasticsearch-eck:9200"] #eck로 pod만들었을 때
+        user => "elastic"  # Elasticsearch 인증 사용자
+        password => "qwer1234"  # Elasticsearch 사용자 비밀번호
+        index => "elk-data" # 없으면 새로 만들어서 저장
+      }
+      stdout { }
+    }
