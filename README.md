@@ -19,6 +19,8 @@ kubectl apply -f https://download.elastic.co/downloads/eck/2.14.0/operator.yaml
 
 ---
 ## Logstash 7.17.16
+- pipeline-ConfigMap.yml 은 간단한 쿼리 예시
+- pipeline-ConfigMap2.yml 은 좀더 복잡한 쿼리 예시
 ### mariadb-jdbc-driver 다운로드
 [다운로드 링크](https://downloads.mariadb.com/Connectors/java/connector-java-2.6.2/)
 ### jdbc-driver 파일로 ConfigMap 만드는 방법
@@ -42,7 +44,8 @@ ssh test@123.123.123 -p 22
 ```agsl
 kubectl create configmap [만들 컨피그맵 이름] --from-file=/home/test/mariadb-java-client-3.4.1.jar -n [네임스페이스 이름] 
 
-
+```
 아래 명령어를 사용하면 잘 만들어졌는지 확인 가능
+```agsl
 kubectl describe configmap [만든 컨피그맵 이름] -n [네임스페이스 이름]
 ```

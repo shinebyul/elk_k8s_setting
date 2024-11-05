@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: elk
+data:
+  logstash.conf: |
+    input {
+      jdbc {
+        jdbc_driver_library => "/usr/share/logstash/mariadb-java-client-3.4.1.jar"
+        jdbc_driver_class => "org.mariadb.jdbc.Driver"
+        jdbc_connection_string => "jdbc:mariadb://mariadb-slave-svc.default.svc.cluster.local:3306/CGB"
+        jdbc_user => "root"
+        jdbc_password => "qwer1234"
+        
+        schedule => "*/10 * * * * *"
+        
+        statement => "SELECT 
+          p.*,  
+		  c.idx AS category_idx,
+		  c.name AS category_name,
+		  a.idx AS atelier_idx,
+		  a.name AS atelier_name,
+		  GROUP_CONCAT(h.name SEPARATOR ', ') AS product_hashtags,
+		  COUNT(l.member_idx) AS like_count
+		  FROM product p
+		  LEFT JOIN category c ON p.category_idx = c.idx
+		  LEFT JOIN atelier a ON p.atelier_idx = a.idx
+		  LEFT JOIN product_hashtag ph ON p.idx = ph.product_idx
+		  LEFT JOIN hashtag h ON ph.hashtag_idx = h.idx
+		  LEFT JOIN likes l ON p.idx = l.product_idx
+		  WHERE 
+		  (
+		    p.modified_at IS NOT NULL 
+		    AND (
+			p.modified_at > :sql_last_value 
+			OR c.modified_at > :sql_last_value
+			OR a.modified_at > :sql_last_value
+			OR h.modified_at > :sql_last_value
+			OR l.modified_at > :sql_last_value
+		  )
+		  )
+		  OR 
+		  (
+		    p.modified_at IS NULL
+			AND p.created_at > :sql_last_value
+		  )
+		  GROUP BY p.idx, c.idx, a.idx;"
+	      add_tag => ["product_data"]
+      }
+      
+      jdbc {
+        jdbc_driver_library => "/usr/share/logstash/mariadb-java-client-3.4.1.jar"
+        jdbc_driver_class => "org.mariadb.jdbc.Driver"
+        jdbc_connection_string => "jdbc:mariadb://mariadb-slave-svc.default.svc.cluster.local:3306/CGB"
+        jdbc_user => "root"
+        jdbc_password => "qwer1234"
+        
+        schedule => "*/10 * * * * *"
+        
+        statement => "SELECT c.idx, c.category_name as name FROM category c WHERE COALESCE(c.modified_at, c.created_at) > :sql_last_value"
+	    add_tag => ["category_data"]
+      }
+    }
+    output {
+      if ("product_data" in [tags] ){
+        elasticsearch {
+          hosts => ["http://elasticsearch:9200"]
+          # hosts => ["http://elasticsearch-eck:9200"]
+          index => "product-data"
+        }
+      }else if("category_data" in [tags]){
+	      elasticsearch {
+          hosts => ["http://elasticsearch:9200"]
+          # hosts => ["http://elasticsearch-eck:9200"]
+          index => "category-data"
+        }
+      }
+      stdout { }
+    }
