@@ -23,8 +23,8 @@ data:
 
     output {
       elasticsearch {
-        hosts => ["http://elasticsearch:9200"]
-        #hosts => ["http://elasticsearch-eck:9200"] #eck로 pod만들었을 때
+        hosts => ["http://elasticsearch:9200"] #Statefulset으로 pod 만들었을 때
+        #hosts => ["http://elasticsearch-eck:9200"] #eck로 pod 만들었을 때
         user => "elastic"  # Elasticsearch 인증 사용자
         password => "qwer1234"  # Elasticsearch 사용자 비밀번호
         index => "elk-data" # 없으면 새로 만들어서 저장
